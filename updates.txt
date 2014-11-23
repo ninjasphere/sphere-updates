@@ -1,0 +1,6 @@
+libapparmor1	2.8.95~2430-0ubuntu5	2.8.95~2430-0ubuntu5.1
+libapparmor-perl	2.8.95~2430-0ubuntu5	2.8.95~2430-0ubuntu5.1
+apparmor	2.8.95~2430-0ubuntu5	2.8.95~2430-0ubuntu5.1
+ruby1.9.1-dev	1.9.3.484-2ubuntu1.1	1.9.3.484-2ubuntu1.2
+libruby1.9.1	1.9.3.484-2ubuntu1.1	1.9.3.484-2ubuntu1.2
+ruby1.9.1	1.9.3.484-2ubuntu1.1	1.9.3.484-2ubuntu1.2
