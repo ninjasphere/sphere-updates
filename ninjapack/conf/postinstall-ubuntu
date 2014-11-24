@@ -1,0 +1,2 @@
+stop sphere-updates || true
+start sphere-updates || true

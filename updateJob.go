@@ -141,8 +141,8 @@ func (u *updateJob) getAvailableUpdates() ([]AvailableUpdate, error) {
 	var err error
 	var available []byte
 
-	/*ioutil.WriteFile("./available-updates.sh", []byte(`#!/bin/bash
-	  apt-get -s dist-upgrade| awk -F'[][() ]+' '/^Inst/{printf "%s\t%s\t%s\n", $2,$3,$4}'`), os.FileMode(755))*/
+	ioutil.WriteFile("./available-updates.sh", []byte(`#!/bin/bash
+	  apt-get -s dist-upgrade| awk -F'[][() ]+' '/^Inst/{printf "%s\t%s\t%s\n", $2,$3,$4}'`), os.FileMode(755))
 
 	cmd := exec.Command("./available-updates.sh")
 
