@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"os/signal"
+	"strings"
+	"time"
 
 	"github.com/ninjasphere/go-ninja/api"
 	"github.com/ninjasphere/go-ninja/config"
@@ -22,6 +24,7 @@ func main() {
 
 	service := &UpdatesService{
 		job: &updateJob{
+			progress:   &Progress{},
 			onProgress: make(chan *Progress, 0),
 		},
 	}
@@ -30,7 +33,8 @@ func main() {
 		for {
 			progress := <-service.job.onProgress
 
-			log.Infof("Progress: %v", progress)
+			//log.Infof("Progress: %v", progress)
+			progress.updateRunningTime()
 			service.sendEvent("progress", progress)
 			if progress.Percent == 100 || progress.Error != "" {
 				service.sendEvent("finished", progress.Error)
@@ -41,6 +45,14 @@ func main() {
 	conn.MustExportService(service, "$node/"+config.Serial()+"/updates", &model.ServiceAnnouncement{
 		Schema: "/service/updates",
 	})
+
+	if strings.Contains(strings.Join(os.Args, ""), "start") {
+		go func() {
+			time.Sleep(time.Second * 2)
+			log.Infof("Starting update automatically")
+			service.Start()
+		}()
+	}
 
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt, os.Kill)
@@ -59,11 +71,16 @@ type AvailableUpdate struct {
 }
 
 type Progress struct {
-	Running     bool    `json:"running"`
+	Running     bool `json:"running"`
+	startTime   time.Time
 	RunningTime int     `json:"runningTime"`
 	Description string  `json:"description"`
 	Percent     float64 `json:"percent"`
 	Error       string  `json:"error"`
+}
+
+func (p *Progress) updateRunningTime() {
+	p.RunningTime = int(time.Since(p.startTime) / time.Second)
 }
 
 func (s *UpdatesService) Start() (*bool, error) {
@@ -73,7 +90,7 @@ func (s *UpdatesService) Start() (*bool, error) {
 		return &x, nil
 	}
 
-	s.job.start()
+	go s.job.start()
 	s.sendEvent("started", nil)
 
 	x := true
@@ -86,6 +103,7 @@ func (s *UpdatesService) GetAvailable() (*[]AvailableUpdate, error) {
 }
 
 func (s *UpdatesService) GetProgress() (*Progress, error) {
+	s.job.progress.updateRunningTime()
 	return s.job.progress, nil
 }
 

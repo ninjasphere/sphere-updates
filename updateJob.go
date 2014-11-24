@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 )
 
 type updateJob struct {
@@ -19,7 +21,8 @@ type updateJob struct {
 func (u *updateJob) start() {
 
 	u.progress = &Progress{
-		Running: true,
+		Running:   true,
+		startTime: time.Now(),
 	}
 
 	u.updateProgress(0, "Updating cache", "")
@@ -41,15 +44,18 @@ func (u *updateJob) start() {
 		return
 	}
 
-	log.Infof("%d packages to update: %v", len(updates))
+	log.Infof("%d packages to update: %v", len(updates), updates)
 
-	u.updateProgress(30, "Installing updates", "")
+	if len(updates) > 0 {
 
-	err = u.installUpdates(updates)
+		u.updateProgress(30, "Installing updates", "")
 
-	if err != nil {
-		u.updateProgress(0, "Failed", fmt.Sprintf("Error: %s", err))
-		return
+		err = u.installUpdates(updates)
+
+		if err != nil {
+			u.updateProgress(0, "Failed", fmt.Sprintf("Error: %s", err))
+			return
+		}
 	}
 
 	u.updateProgress(100, "Finished", "")
@@ -72,8 +78,6 @@ func (u *updateJob) updateProgress(percent float64, description, err string) {
 	if description != "" {
 		u.progress.Description = description
 	}
-
-	log.Debugf("Progress: %v", u.progress)
 
 	u.onProgress <- u.progress
 }
@@ -189,12 +193,15 @@ func (u *updateJob) installUpdates(updates []AvailableUpdate) error {
 			args = append(args, update.Name)
 		}
 
+		log.Infof("Running update command : apt-get %s", strings.Join(args, " "))
+
 		cmd = exec.Command("apt-get", args...)
+		cmd.Stderr = os.Stderr
 	} else {
 		cmd = exec.Command("cat", "./upgrade.txt")
 	}
 
-	cmd.Env = []string{"DEBIAN_FRONTEND=noninteractive"}
+	os.Setenv("DEBIAN_FRONTEND", "noninteractive")
 
 	reader, err := cmd.StdoutPipe()
 
@@ -214,12 +221,12 @@ func (u *updateJob) installUpdates(updates []AvailableUpdate) error {
 		for {
 			line, _, err := bufReader.ReadLine()
 
+			log.Debugf("apt: " + string(line))
+
 			if err != nil {
 				//log.Infof("ERR:%s", err)
 				break
 			}
-
-			log.Infof("Line: " + string(line))
 
 			if strings.HasPrefix(string(line), "Reading package lists") {
 				percent = percent + 5.0
