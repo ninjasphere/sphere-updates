@@ -1,211 +1,94 @@
 package main
 
 import (
-	"bufio"
-	"io/ioutil"
-	"math"
-	"os/exec"
-	"runtime"
-	"strings"
-	"syscall"
+	"os"
+	"os/signal"
 
+	"github.com/ninjasphere/go-ninja/api"
+	"github.com/ninjasphere/go-ninja/config"
 	"github.com/ninjasphere/go-ninja/logger"
+	"github.com/ninjasphere/go-ninja/model"
 )
 
 var log = logger.GetLogger("updater")
 
-type availableUpdate struct {
-	Name      string
-	Current   string
-	Available string
-}
-
 func main() {
 
-	lastPercent := 0.0
-
-	updatePercentage := func(percent float64) {
-		//spew.Dump(percent, lastPercent)
-		if percent > lastPercent {
-			lastPercent = percent
-			log.Infof("Done: %f%%", lastPercent)
-		}
-	}
-
-	updatePercentage(0)
-
-	log.Infof("Updating from repositories")
-
-	updateCache(45, 0, 25, updatePercentage)
-
-	updates := getAvailableUpdates(updatePercentage)
-
-	log.Infof("%d packages to update", len(updates))
-
-	updatePercentage(30)
-
-	distUpgrade(updates, updatePercentage)
-
-	updatePercentage(100)
-
-}
-
-func updateCache(expectedLines float64, startPercent float64, totalPercent float64, update func(percent float64)) {
-
-	if runtime.GOOS != "linux" {
-		return
-	}
-
-	updateLines := 0.0
-
-	cmd := exec.Command("apt-get", "update", "-q")
-
-	reader, err := cmd.StdoutPipe()
-
-	bufReader := bufio.NewReader(reader)
-
-	err = cmd.Start()
+	conn, err := ninja.Connect("sphere-updates")
 
 	if err != nil {
-		panic("ERROR could not spawn command." + err.Error())
+		log.FatalErrorf(err, "Failed to connect to mqtt")
 	}
 
-	for {
-		_, _, err := bufReader.ReadLine()
-
-		if err != nil {
-			log.Infof("ERR:%s", err)
-			break
-		}
-
-		updateLines++
-		//cleaned := invalidChar.ReplaceAll([]byte(x[0:n]), []byte(""))
-
-		update(startPercent + math.Min(totalPercent, (updateLines/expectedLines)*totalPercent))
-		//	log.Infof("GOT: |%s| %t", line, isPrefix)
+	service := &UpdatesService{
+		job: &updateJob{
+			onProgress: make(chan *Progress, 0),
+		},
 	}
-
-}
-
-func getAvailableUpdates(update func(percent float64)) []availableUpdate {
-	var err error
-	var available []byte
-
-	/*ioutil.WriteFile("./available-updates.sh", []byte(`#!/bin/bash
-	  apt-get -s dist-upgrade| awk -F'[][() ]+' '/^Inst/{printf "%s\t%s\t%s\n", $2,$3,$4}'`), os.FileMode(755))*/
-
-	if runtime.GOOS == "linux" {
-		available, err = exec.Command("./available-updates.sh").Output()
-	} else {
-		available, err = ioutil.ReadFile("./updates.txt")
-	}
-
-	if err != nil {
-		panic(err)
-	}
-
-	var updates []availableUpdate
-
-	for _, line := range strings.Split(string(available), "\n") {
-		s := strings.Split(line, "\t")
-		if len(s) == 3 {
-			updates = append(updates, availableUpdate{s[0], s[1], s[2]})
-		}
-	}
-
-	return updates
-}
-
-func distUpgrade(updates []availableUpdate, update func(percent float64)) {
-
-	numPackages := 0.0
-	var cmd *exec.Cmd
-	if runtime.GOOS == "linux" {
-		args := []string{"install", "-yy", "-q"}
-		for _, update := range updates {
-			if strings.Contains(update.Available, "spheramid") {
-				args = append(args, update.Name)
-				numPackages++
-			}
-		}
-
-		cmd = exec.Command("apt-get", args...)
-	} else {
-		cmd = exec.Command("cat", "./upgrade.txt")
-	}
-
-	cmd.Env = []string{"DEBIAN_FRONTEND=noninteractive"}
-
-	reader, err := cmd.StdoutPipe()
-
-	bufReader := bufio.NewReader(reader)
-
-	err = cmd.Start()
-
-	if err != nil {
-		panic("ERROR could not spawn command." + err.Error())
-	}
-
-	pointsPerPackage := float64(10) / numPackages
-
-	percent := 30.0
 
 	go func() {
 		for {
-			line, _, err := bufReader.ReadLine()
+			progress := <-service.job.onProgress
 
-			if err != nil {
-				log.Infof("ERR:%s", err)
-				break
+			log.Infof("Progress: %v", progress)
+			service.sendEvent("progress", progress)
+			if progress.Percent == 100 || progress.Error != "" {
+				service.sendEvent("finished", progress.Error)
 			}
-
-			log.Infof("Line: " + string(line))
-
-			if strings.HasPrefix(string(line), "Reading package lists") {
-				percent = percent + 5.0
-			}
-
-			if strings.HasPrefix(string(line), "Building dependency tree") {
-				percent = percent + 5.0
-			}
-
-			if strings.HasPrefix(string(line), "Reading state information") {
-				percent = percent + 5.0
-			}
-
-			if strings.HasPrefix(string(line), "Need to get") {
-				percent = percent + 5.0
-			}
-
-			if strings.HasPrefix(string(line), "Get:") {
-				percent = percent + (pointsPerPackage * float64(2))
-			}
-
-			if strings.HasPrefix(string(line), "Unpacking ") {
-				percent = percent + (pointsPerPackage * float64(2))
-			}
-
-			if strings.HasPrefix(string(line), "Setting up ") {
-				percent = percent + pointsPerPackage
-			}
-
-			update(math.Min(99, percent))
-
 		}
 	}()
 
-	if err := cmd.Wait(); err != nil {
-		if exiterr, ok := err.(*exec.ExitError); ok {
-			// The program has exited with an exit code != 0
-			// There is no plattform independent way to retrieve
-			// the exit code, but the following will work on Unix
-			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				log.Infof("Bad Exit Status: %d", status.ExitStatus())
-				panic("Boom")
-			}
-		} else {
-			log.Infof("cmd.Wait: %v", err)
-		}
+	conn.MustExportService(service, "$node/"+config.Serial()+"/updates", &model.ServiceAnnouncement{
+		Schema: "/service/updates",
+	})
+
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, os.Interrupt, os.Kill)
+	log.Infof("Got signal: %v", <-s)
+}
+
+type UpdatesService struct {
+	job       *updateJob
+	sendEvent func(event string, payload interface{}) error
+}
+
+type AvailableUpdate struct {
+	Name      string `json:"name"`
+	Current   string `json:"current"`
+	Available string `json:"available"`
+}
+
+type Progress struct {
+	Running     bool    `json:"running"`
+	RunningTime int     `json:"runningTime"`
+	Description string  `json:"description"`
+	Percent     float64 `json:"percent"`
+	Error       string  `json:"error"`
+}
+
+func (s *UpdatesService) Start() (*bool, error) {
+
+	if s.job.progress.Running {
+		x := false
+		return &x, nil
 	}
 
+	s.job.start()
+	s.sendEvent("started", nil)
+
+	x := true
+	return &x, nil
+}
+
+func (s *UpdatesService) GetAvailable() (*[]AvailableUpdate, error) {
+	updates, err := s.job.getAvailableUpdates()
+	return &updates, err
+}
+
+func (s *UpdatesService) GetProgress() (*Progress, error) {
+	return s.job.progress, nil
+}
+
+func (s *UpdatesService) SetEventHandler(sendEvent func(event string, payload interface{}) error) {
+	s.sendEvent = sendEvent
 }
