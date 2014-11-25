@@ -25,7 +25,7 @@ func (u *updateJob) start() {
 		startTime: time.Now(),
 	}
 
-	u.updateProgress(0, "Updating cache", "")
+	u.updateProgress(0, "Looking for updates", "")
 
 	log.Infof("Updating from repositories")
 
@@ -35,7 +35,7 @@ func (u *updateJob) start() {
 		return
 	}
 
-	u.updateProgress(27, "Finding available updates", "")
+	u.updateProgress(27, "Processing available updates", "")
 
 	updates, err := u.getAvailableUpdates()
 
