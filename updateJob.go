@@ -27,6 +27,8 @@ func (u *updateJob) start() {
 
 	u.updateProgress(0, "Looking for updates", "")
 
+	u.cleanup()
+
 	log.Infof("Updating from repositories")
 
 	err := u.updateCache(45, 0, 25)
@@ -43,6 +45,8 @@ func (u *updateJob) start() {
 		u.updateProgress(0, "Failed", fmt.Sprintf("Error: %s", err))
 		return
 	}
+
+	u.autoRemove()
 
 	log.Infof("%d packages to update: %v", len(updates), updates)
 
@@ -72,7 +76,7 @@ func (u *updateJob) updateProgress(percent float64, description, err string) {
 	}
 
 	if err != "" {
-		u.progress.Error = err
+		u.progress.Error = &err
 	}
 
 	if description != "" {
@@ -126,7 +130,7 @@ func (u *updateJob) updateCache(expectedLines float64, startPercent float64, tot
 			// There is no plattform independent way to retrieve
 			// the exit code, but the following will work on Unix
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				log.Infof("Bad Exit Status: %d", status.ExitStatus())
+				log.Infof("updateCache Bad Exit Status: %d", status.ExitStatus())
 				return fmt.Errorf("Failed to update cache. Code: %d", status.ExitStatus())
 			}
 		} else {
@@ -135,6 +139,23 @@ func (u *updateJob) updateCache(expectedLines float64, startPercent float64, tot
 	}
 
 	return nil
+}
+
+func (u *updateJob) cleanup() {
+	cmd := exec.Command("dpkg", "--configure", "-a")
+
+	output, _ := cmd.Output()
+
+	log.Infof("Output from dpkg: %s", output)
+
+}
+
+func (u *updateJob) autoRemove() {
+	cmd := exec.Command("apt-get", "auto-remove")
+
+	output, _ := cmd.Output()
+
+	log.Infof("Output from apt-get autoremove: %s", output)
 }
 
 func (u *updateJob) getAvailableUpdates() ([]AvailableUpdate, error) {
@@ -221,7 +242,7 @@ func (u *updateJob) installUpdates(updates []AvailableUpdate) error {
 		for {
 			line, _, err := bufReader.ReadLine()
 
-			log.Debugf("apt: " + string(line))
+			log.Infof("apt: " + string(line))
 
 			if err != nil {
 				//log.Infof("ERR:%s", err)
@@ -267,7 +288,7 @@ func (u *updateJob) installUpdates(updates []AvailableUpdate) error {
 			// There is no plattform independent way to retrieve
 			// the exit code, but the following will work on Unix
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				log.Infof("Bad Exit Status: %d", status.ExitStatus())
+				log.Infof("installUpdates Bad Exit Status: %d", status.ExitStatus())
 				return fmt.Errorf("Failed to install updates. Code:%d", status.ExitStatus())
 			}
 		} else {

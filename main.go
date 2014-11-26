@@ -10,6 +10,8 @@ import (
 	"github.com/ninjasphere/go-ninja/config"
 	"github.com/ninjasphere/go-ninja/logger"
 	"github.com/ninjasphere/go-ninja/model"
+
+	ledmodel "github.com/ninjasphere/sphere-go-led-controller/model"
 )
 
 var log = logger.GetLogger("updater")
@@ -21,6 +23,8 @@ func main() {
 	if err != nil {
 		log.FatalErrorf(err, "Failed to connect to mqtt")
 	}
+
+	ledService := conn.GetServiceClient("$node/" + config.Serial() + "/led-controller")
 
 	service := &UpdatesService{
 		job: &updateJob{
@@ -36,9 +40,14 @@ func main() {
 			//log.Infof("Progress: %v", progress)
 			progress.updateRunningTime()
 			service.sendEvent("progress", progress)
-			if progress.Percent == 100 || progress.Error != "" {
+			if progress.Percent == 100 || progress.Error != nil {
 				service.sendEvent("finished", progress.Error)
 			}
+
+			ledService.Call("showProgress", ledmodel.DisplayProgress{
+				Progress: float64(progress.Percent) / float64(100),
+				Icon:     "update-progress.gif",
+			}, nil, time.Second*10)
 		}
 	}()
 
@@ -76,7 +85,7 @@ type Progress struct {
 	RunningTime int     `json:"runningTime"`
 	Description string  `json:"description"`
 	Percent     float64 `json:"percent"`
-	Error       string  `json:"error"`
+	Error       *string `json:"error,omitEmpty"`
 }
 
 func (p *Progress) updateRunningTime() {
