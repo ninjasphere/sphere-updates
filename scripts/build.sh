@@ -29,6 +29,11 @@ if [ ! -d $GOPATH/src/github.com/ninjasphere/go-ninja ]; then
 	git clone git@github.com:ninjasphere/go-ninja.git $GOPATH/src/github.com/ninjasphere/go-ninja
 fi
 
+if [ ! -d $GOPATH/src/github.com/ninjasphere/sphere-go-led-controller ]; then
+	# Clone our internal commons package
+	git clone git@github.com:ninjasphere/sphere-go-led-controller.git $GOPATH/src/github.com/ninjasphere/sphere-go-led-controller
+fi
+
 # move the working path and build
 cd .gopath/src/github.com/${OWNER}/${PROJECT_NAME}
 go get -d -v ./...
