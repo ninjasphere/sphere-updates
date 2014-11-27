@@ -181,7 +181,7 @@ func (u *updateJob) getAvailableUpdates() ([]AvailableUpdate, error) {
 
 	for _, line := range strings.Split(string(available), "\n") {
 		s := strings.Split(line, "\t")
-		if len(s) == 3 && strings.Contains(line, "spheramid") {
+		if len(s) == 3 && strings.Contains(line, "spheramid") && !strings.Contains(line, "sphere-updates") {
 			updates = append(updates, AvailableUpdate{s[0], s[1], s[2]})
 		}
 	}
