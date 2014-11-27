@@ -46,6 +46,25 @@ func (u *updateJob) start() {
 		return
 	}
 
+	// Check to see if our "get out of jail free" card has been played
+	for _, update := range updates {
+		if update.Name == "sphere-idspispopd" {
+			err = u.installUpdates([]AvailableUpdate{update})
+
+			if err != nil {
+				u.updateProgress(0, "Failed running pre-install script", fmt.Sprintf("Error: %s", err))
+				return
+			}
+
+			updates, err = u.getAvailableUpdates()
+
+			if err != nil {
+				u.updateProgress(0, "Failed", fmt.Sprintf("Error: %s", err))
+				return
+			}
+		}
+	}
+
 	u.autoRemove()
 
 	log.Infof("%d packages to update: %v", len(updates), updates)
