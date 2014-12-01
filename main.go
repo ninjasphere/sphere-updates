@@ -44,9 +44,8 @@ func main() {
 				service.sendEvent("finished", progress.Error)
 			}
 
-			ledService.Call("displayProgress", ledmodel.DisplayProgress{
+			ledService.Call("displayUpdateProgress", ledmodel.DisplayUpdateProgress{
 				Progress: float64(progress.Percent) / float64(100),
-				Icon:     "update-progress.gif",
 			}, nil, time.Second*10)
 		}
 	}()
