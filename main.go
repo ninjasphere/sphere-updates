@@ -40,13 +40,23 @@ func main() {
 			//log.Infof("Progress: %v", progress)
 			progress.updateRunningTime()
 			service.sendEvent("progress", progress)
-			if progress.Percent == 100 || progress.Error != nil {
+			if progress.Percent == 100 {
 				service.sendEvent("finished", progress.Error)
+
+				if progress.Error == nil {
+					ledService.Call("displayIcon", "update-succeeded.gif", nil, time.Second*10)
+				} else {
+					ledService.Call("displayIcon", "update-failed.gif", nil, time.Second*10)
+				}
+
+			} else {
+
+				ledService.Call("displayUpdateProgress", ledmodel.DisplayUpdateProgress{
+					Progress: float64(progress.Percent) / float64(100),
+				}, nil, time.Second*10)
+
 			}
 
-			ledService.Call("displayUpdateProgress", ledmodel.DisplayUpdateProgress{
-				Progress: float64(progress.Percent) / float64(100),
-			}, nil, time.Second*10)
 		}
 	}()
 
