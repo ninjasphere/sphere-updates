@@ -121,7 +121,7 @@ func (u *updateJob) setReadWrite(writing bool) error {
 		return nil
 	}
 
-	mode := "r"
+	mode := "ro"
 	if writing {
 		mode = "rw"
 	}
