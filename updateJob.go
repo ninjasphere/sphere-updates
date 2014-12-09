@@ -128,7 +128,9 @@ func (u *updateJob) setReadWrite(writing bool) error {
 
 	cmd := exec.Command("mount", "-o", "remount,"+mode, "/")
 
-	_, err := cmd.StdoutPipe()
+	output, err := cmd.Output()
+	log.Infof("Output from mount: %s", output)
+
 	return err
 }
 
