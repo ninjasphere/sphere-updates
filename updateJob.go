@@ -46,6 +46,10 @@ func (u *updateJob) start() {
 		return
 	}
 
+	updates = append(updates, AvailableUpdate{
+		Name: "ninjasphere", // Always force it
+	})
+
 	// Check to see if our "get out of jail free" card has been played
 	for _, update := range updates {
 		if update.Name == "sphere-idspispopd" {
