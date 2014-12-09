@@ -29,9 +29,16 @@ func (u *updateJob) start() {
 
 	u.cleanup()
 
+	err := u.setReadWrite(true)
+	if err != nil {
+		u.updateProgress(0, "Failed to enable disk writing", fmt.Sprintf("Error: %s", err))
+		return
+	}
+	defer u.setReadWrite(false)
+
 	log.Infof("Updating from repositories")
 
-	err := u.updateCache(45, 0, 25)
+	err = u.updateCache(45, 0, 25)
 	if err != nil {
 		u.updateProgress(0, "Failed", fmt.Sprintf("Error: %s", err))
 		return
@@ -107,6 +114,22 @@ func (u *updateJob) updateProgress(percent float64, description, err string) {
 	}
 
 	u.onProgress <- u.progress
+}
+
+func (u *updateJob) setReadWrite(writing bool) error {
+	if runtime.GOOS != "linux" {
+		return nil
+	}
+
+	mode := "r"
+	if writing {
+		mode = "rw"
+	}
+
+	cmd := exec.Command("mount", "-o", "remount,"+mode, "/")
+
+	_, err := cmd.StdoutPipe()
+	return err
 }
 
 func (u *updateJob) updateCache(expectedLines float64, startPercent float64, totalPercent float64) error {
