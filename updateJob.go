@@ -55,6 +55,8 @@ func (u *updateJob) start() {
 
 	updates = append(updates, AvailableUpdate{
 		Name: "ninjasphere", // Always force it
+	}, AvailableUpdate{
+		Name: "ninjasphere-drivers", // Always force it
 	})
 
 	// Check to see if our "get out of jail free" card has been played
