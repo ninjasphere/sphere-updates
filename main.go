@@ -44,16 +44,16 @@ func main() {
 				service.sendEvent("finished", progress.Error)
 
 				if progress.Error == nil {
-					ledService.Call("displayIcon", "update-succeeded.gif", nil, time.Second*10)
+					ledService.Call("displayIcon", "update-succeeded.gif", nil, 0)
 				} else {
-					ledService.Call("displayIcon", "update-failed.gif", nil, time.Second*10)
+					ledService.Call("displayIcon", "update-failed.gif", nil, 0)
 				}
 
 			} else {
 
 				ledService.Call("displayUpdateProgress", ledmodel.DisplayUpdateProgress{
 					Progress: float64(progress.Percent) / float64(100),
-				}, nil, time.Second*10)
+				}, nil, 0)
 
 			}
 
