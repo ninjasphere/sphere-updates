@@ -7,7 +7,9 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -253,10 +255,14 @@ func (u *updateJob) getAvailableUpdates() ([]AvailableUpdate, error) {
 	return updates, nil
 }
 
+var numberToInstallRegex = regexp.MustCompile(`(\d+) upgraded, (\d+) newly installed, (\d+) to remove`)
+
 func (u *updateJob) installUpdates(updates []AvailableUpdate) error {
 
 	var cmd *exec.Cmd
 	if runtime.GOOS == "linux" {
+
+		os.Setenv("DEBIAN_FRONTEND", "noninteractive")
 		args := []string{"install", "-yy", "-q"}
 		for _, update := range updates {
 			args = append(args, update.Name)
@@ -269,8 +275,6 @@ func (u *updateJob) installUpdates(updates []AvailableUpdate) error {
 	} else {
 		cmd = exec.Command("cat", "./upgrade.txt")
 	}
-
-	os.Setenv("DEBIAN_FRONTEND", "noninteractive")
 
 	reader, err := cmd.StdoutPipe()
 
@@ -295,6 +299,24 @@ func (u *updateJob) installUpdates(updates []AvailableUpdate) error {
 			if err != nil {
 				//log.Infof("ERR:%s", err)
 				break
+			}
+
+			numPackages := numberToInstallRegex.FindStringSubmatch(string(line))
+
+			if numPackages != nil {
+				p := 0.0
+				for _, n := range numPackages[1:] {
+					i, err := strconv.ParseInt(n, 16, 10)
+					if err != nil {
+						log.Warningf("Failed to parse number of packages: %s", n)
+					} else {
+						p += float64(i)
+					}
+				}
+
+				pointsPerPackage = float64(10) / p
+
+				log.Debugf("Found nuber of packages: %f, points per package: %f", p, pointsPerPackage)
 			}
 
 			if strings.HasPrefix(string(line), "Reading package lists") {
@@ -326,7 +348,6 @@ func (u *updateJob) installUpdates(updates []AvailableUpdate) error {
 			}
 
 			u.updateProgress(math.Min(99, percent), "Installing updates", "")
-
 		}
 	}()
 
