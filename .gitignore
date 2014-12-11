@@ -25,4 +25,4 @@ _testmain.go
 .gopath
 bin
 
-sphere-updates
+./sphere-updates

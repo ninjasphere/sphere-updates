@@ -38,6 +38,8 @@ func (u *updateJob) start() {
 	}
 	defer u.setReadWrite(false)
 
+	u.runGetOutOfJailFreeScript()
+
 	log.Infof("Updating from repositories")
 
 	err = u.updateCache(45, 0, 25)
@@ -95,6 +97,19 @@ func (u *updateJob) start() {
 	}
 
 	u.updateProgress(100, "Finished", "")
+}
+
+func (u *updateJob) runGetOutOfJailFreeScript() error {
+	if runtime.GOOS != "linux" {
+		return nil
+	}
+
+	cmd := exec.Command("./oh-crap.sh")
+
+	output, err := cmd.Output()
+	log.Infof("Output from script: %s err:", output, err)
+
+	return err
 }
 
 func (u *updateJob) updateProgress(percent float64, description, err string) {
