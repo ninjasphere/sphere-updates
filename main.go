@@ -43,10 +43,20 @@ func main() {
 			if progress.Percent == 100 {
 				service.sendEvent("finished", progress.Error)
 
+				ledService.Call("displayUpdateProgress", ledmodel.DisplayUpdateProgress{
+					Progress: float64(progress.Percent) / float64(100),
+				}, nil, 0)
+
+				time.Sleep(time.Second * 2)
+
 				if progress.Error == nil {
-					ledService.Call("displayIcon", "update-succeeded.gif", nil, 0)
+					ledService.Call("displayIcon", ledmodel.IconRequest{
+						Icon: "update-succeeded.gif",
+					}, nil, 0)
 				} else {
-					ledService.Call("displayIcon", "update-failed.gif", nil, 0)
+					ledService.Call("displayIcon", ledmodel.IconRequest{
+						Icon: "update-failed.gif",
+					}, nil, 0)
 				}
 
 			} else {
