@@ -1,0 +1,5 @@
+file=/var/lib/dpkg/available &&
+md5=$(dd if=$file count=1 bs=256 2>/dev/null | md5sum | cut -f1 -d' ') &&
+test "$md5" = "348a9791dc41b89796ec3808b5b5262f" &&
+test -f /var/lib/dpkg/available-old &&
+cp /var/lib/dpkg/available-old /var/lib/dpkg/available
