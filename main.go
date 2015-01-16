@@ -27,6 +27,7 @@ func main() {
 	ledService := conn.GetServiceClient("$node/" + config.Serial() + "/led-controller")
 
 	service := &UpdatesService{
+		led: ledService,
 		job: &updateJob{
 			progress:   &Progress{},
 			onProgress: make(chan *Progress, 0),
@@ -59,6 +60,10 @@ func main() {
 					}, nil, 0)
 				}
 
+				time.Sleep(time.Second * 5)
+
+				ledService.Call("enableControl", nil, nil, 0)
+
 			} else {
 
 				ledService.Call("displayUpdateProgress", ledmodel.DisplayUpdateProgress{
@@ -88,6 +93,7 @@ func main() {
 }
 
 type UpdatesService struct {
+	led       *ninja.ServiceClient
 	job       *updateJob
 	sendEvent func(event string, payload interface{}) error
 }
@@ -117,6 +123,8 @@ func (s *UpdatesService) Start() (*bool, error) {
 		x := false
 		return &x, nil
 	}
+
+	s.led.Call("disableControl", nil, nil, 0)
 
 	go s.job.start()
 	s.sendEvent("started", nil)
