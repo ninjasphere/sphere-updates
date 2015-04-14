@@ -10,6 +10,7 @@ import (
 	"github.com/ninjasphere/go-ninja/config"
 	"github.com/ninjasphere/go-ninja/logger"
 	"github.com/ninjasphere/go-ninja/model"
+	umodel "github.com/ninjasphere/sphere-updates/model"
 
 	ledmodel "github.com/ninjasphere/sphere-go-led-controller/model"
 )
@@ -29,8 +30,8 @@ func main() {
 	service := &UpdatesService{
 		led: ledService,
 		job: &updateJob{
-			progress:   &Progress{},
-			onProgress: make(chan *Progress, 0),
+			progress:   &umodel.Progress{},
+			onProgress: make(chan *umodel.Progress, 0),
 		},
 	}
 
@@ -38,8 +39,8 @@ func main() {
 		for {
 			progress := <-service.job.onProgress
 
-			//log.Infof("Progress: %v", progress)
-			progress.updateRunningTime()
+			//log.Infof("umodel.Progress: %v", progress)
+			progress.UpdateRunningTime()
 			service.sendEvent("progress", progress)
 			if progress.Percent == 100 {
 				service.sendEvent("finished", progress.Error)
@@ -104,19 +105,6 @@ type AvailableUpdate struct {
 	Available string `json:"available"`
 }
 
-type Progress struct {
-	Running     bool `json:"running"`
-	startTime   time.Time
-	RunningTime int     `json:"runningTime"`
-	Description string  `json:"description"`
-	Percent     float64 `json:"percent"`
-	Error       *string `json:"error,omitEmpty"`
-}
-
-func (p *Progress) updateRunningTime() {
-	p.RunningTime = int(time.Since(p.startTime) / time.Second)
-}
-
 func (s *UpdatesService) Start() (*bool, error) {
 
 	if s.job.progress.Running {
@@ -138,8 +126,8 @@ func (s *UpdatesService) GetAvailable() (*[]AvailableUpdate, error) {
 	return &updates, err
 }
 
-func (s *UpdatesService) GetProgress() (*Progress, error) {
-	s.job.progress.updateRunningTime()
+func (s *UpdatesService) GetProgress() (*umodel.Progress, error) {
+	s.job.progress.UpdateRunningTime()
 	return s.job.progress, nil
 }
 

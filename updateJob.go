@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	model "github.com/ninjasphere/sphere-updates/model"
 	"io/ioutil"
 	"math"
 	"os"
@@ -16,15 +17,15 @@ import (
 )
 
 type updateJob struct {
-	progress   *Progress
-	onProgress chan *Progress
+	progress   *model.Progress
+	onProgress chan *model.Progress
 }
 
 func (u *updateJob) start() {
 
-	u.progress = &Progress{
+	u.progress = &model.Progress{
 		Running:   true,
-		startTime: time.Now(),
+		StartTime: time.Now(),
 	}
 
 	u.updateProgress(0, "Looking for updates", "")
