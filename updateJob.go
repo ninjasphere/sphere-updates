@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/ninjasphere/go-ninja/config"
 	model "github.com/ninjasphere/sphere-updates/model"
 	"io/ioutil"
 	"math"
@@ -58,8 +59,9 @@ func (u *updateJob) start() {
 		return
 	}
 
+	topLevelMetaPackage := config.String("ninjasphere", "top-level-meta-package")
 	updates = append(updates, AvailableUpdate{
-		Name: "ninjasphere", // Always force it
+		Name: topLevelMetaPackage, // Always force it
 	})
 
 	// Check to see if our "get out of jail free" card has been played
