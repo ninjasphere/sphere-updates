@@ -11,7 +11,7 @@ test -f /var/lib/dpkg/available-old &&
 cp /var/lib/dpkg/available-old /var/lib/dpkg/available
 
 if test -f /usr/local/sbin/hems-rescue; then
-	DEBIAN_FRONTEND=noninteractive
+	export DEBIAN_FRONTEND=noninteractive
 	apt-get update -y &&
 	apt-get upgrade -y --with-new-pkgs
 fi
