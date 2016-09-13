@@ -11,7 +11,10 @@ test -f /var/lib/dpkg/available-old &&
 cp /var/lib/dpkg/available-old /var/lib/dpkg/available
 
 if test -f /usr/local/sbin/hems-rescue; then
+
+	# 2016/09/13 added work around for conf file conflict in /etc/issue during upgrade
+
 	export DEBIAN_FRONTEND=noninteractive
 	apt-get update -y &&
-	apt-get upgrade -y --with-new-pkgs
+	apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" --with-new-pkgs
 fi
