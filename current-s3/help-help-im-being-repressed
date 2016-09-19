@@ -19,6 +19,6 @@ cp /var/lib/dpkg/available-old /var/lib/dpkg/available
 #	apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" --with-new-pkgs
 #fi
 
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -y &&
-apt-get upgrade -y -o Dpkg::Options::="--force-confnew" --with-new-pkgs
+#export DEBIAN_FRONTEND=noninteractive
+#apt-get update -y &&
+#apt-get upgrade -y -o Dpkg::Options::="--force-confnew" --with-new-pkgs
