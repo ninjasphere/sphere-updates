@@ -10,15 +10,7 @@ test "$md5" = "348a9791dc41b89796ec3808b5b5262f" &&
 test -f /var/lib/dpkg/available-old &&
 cp /var/lib/dpkg/available-old /var/lib/dpkg/available
 
-#if test -f /usr/local/sbin/hems-rescue; then
-#
-# 2016/09/13 added work around for conf file conflict in /etc/issue during upgrade
-#
-#	export DEBIAN_FRONTEND=noninteractive
-#	apt-get update -y &&
-#	apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" --with-new-pkgs
-#fi
-
-#export DEBIAN_FRONTEND=noninteractive
-#apt-get update -y &&
-#apt-get upgrade -y -o Dpkg::Options::="--force-confnew" --with-new-pkgs
+# handle spurious prompts for these packages.
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y &&
+apt-get install base-files ninjasphere-factory-test -y -o Dpkg::Options::="--force-confnew"
