@@ -281,7 +281,7 @@ func (u *updateJob) installUpdates(updates []AvailableUpdate) error {
 	if runtime.GOOS == "linux" {
 
 		os.Setenv("DEBIAN_FRONTEND", "noninteractive")
-		args := []string{"install", "-yy", "-q", "-o", "Dpkg::Options::=--force-confnew"}
+		args := []string{"install", "-yy", "-q"}
 		for _, update := range updates {
 			args = append(args, update.Name)
 		}
