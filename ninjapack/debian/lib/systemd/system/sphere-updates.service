@@ -1,0 +1,11 @@
+[Unit]
+Description=NinjaBlocks Sphere Updates Service
+After=network.target 
+
+[Service]
+ExecStart=/bin/bash -c '. /etc/profile && cd /opt/ninjablocks/sphere-updates && export DEBUG=t && exec ./sphere-updates $$(sphere-client-args)'
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
