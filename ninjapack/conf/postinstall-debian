@@ -1,2 +1,3 @@
+systemctl sphere-updates enable
 service sphere-updates stop || true
 service sphere-updates start || true
